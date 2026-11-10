@@ -1,3 +1,7 @@
+<p align="center">
+  <img src=".claude-plugin/icon.svg" alt="Ícone do foco: um alvo" width="128">
+</p>
+
 # foco
 
 [Português](#português) · [English](#english)
@@ -74,7 +78,17 @@ Para rodar os testes: `python3 -m unittest discover -s tests`.
 - Shows `foco ativo N/M` in the status line while items are pending.
 - Blocks stopping while items are pending, but only once.
 
-The hooks do nothing until a request is recorded. Install with `/plugin install foco --marketplace britors/foco`.
+The hooks do nothing until a request is recorded.
+
+Install:
+
+```
+/plugin install foco --marketplace britors/foco
+```
+
+On older versions, run `/plugin marketplace add britors/foco` and then `/plugin install foco@foco`.
+
+Usage: say "foco" or "só o que eu pedi" (the skill also starts on its own on requests with several items). Claude records the checklist, marks items as done and lists the out-of-scope ideas at the end.
 
 ## Licença / License
 
