@@ -12,6 +12,7 @@ Plugin do [Claude Code](https://claude.com/claude-code) que mantém o Claude **n
 - **Lembra os pendentes** a cada pedido seu, numa linha curta (de 50 a 150 tokens).
 - **Avisa quando o Claude edita fora do escopo** declarado e pede que ele desfaça a mudança ou pergunte a você.
 - **Anota as ideias fora do escopo** (um bug ao lado, uma refatoração tentadora) em vez de executá-las, e mostra a lista no final.
+- **Mostra `foco ativo N/M` na status line** enquanto a demanda tiver itens pendentes (N concluídos ou adiados de M).
 - **Não deixa encerrar com item pendente:** o Claude conclui o item, adia com motivo ou pergunta a você. Ele bloqueia uma vez só, para não prender a sessão.
 
 Os hooks só agem depois que uma demanda é registrada no projeto. Sem demanda, não fazem nada e não gastam tokens.
@@ -46,7 +47,7 @@ Fora do escopo, para depois:
 - o módulo de pagamento repete a mesma validação
 ```
 
-Comandos que o Claude usa: `definir`, `feito N`, `adiar N "motivo"`, `fora "ideia"`, `mostrar`, `retomar` (assume a demanda deixada por outra sessão) e `limpar`. O estado fica em `~/.claude/foco/`, um arquivo por projeto.
+Comandos que o Claude usa: `definir`, `feito N`, `adiar N "motivo"`, `fora "ideia"`, `mostrar`, `retomar` (assume a demanda deixada por outra sessão), `limpar` e `status` (a linha da status line). O estado fica em `~/.claude/foco/`, um arquivo por projeto.
 
 ### Estrutura
 
@@ -56,6 +57,7 @@ Comandos que o Claude usa: `definir`, `feito N`, `adiar N "motivo"`, `fora "idei
 skills/foco/SKILL.md             como registrar, trabalhar e encerrar
 skills/foco/scripts/foco.py      comandos e hooks
 hooks/hooks.json                 UserPromptSubmit, PostToolUse e Stop
+hooks/status.ts                  "foco ativo" na status line
 tests/test_foco.py               testes
 ```
 
@@ -69,6 +71,7 @@ Para rodar os testes: `python3 -m unittest discover -s tests`.
 - Reminds Claude of pending items on each prompt in one short line.
 - Warns when Claude edits a file outside the declared scope.
 - Logs out-of-scope ideas instead of acting on them, and lists them at the end.
+- Shows `foco ativo N/M` in the status line while items are pending.
 - Blocks stopping while items are pending, but only once.
 
 The hooks do nothing until a request is recorded. Install with `/plugin install foco --marketplace britors/foco`.

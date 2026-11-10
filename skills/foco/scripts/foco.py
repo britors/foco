@@ -9,6 +9,7 @@ Comandos para o Claude, rodados na pasta do projeto:
     foco.py mostrar
     foco.py retomar        # assume a demanda pendente de outra sessão
     foco.py limpar
+    foco.py status         # uma linha para a status line, vazia sem pendentes
 
 Hooks do plugin (lêem o JSON do Claude Code na entrada padrão):
     foco.py hook-lembrete  # UserPromptSubmit: lembra os itens pendentes
@@ -97,12 +98,17 @@ def cmd(argv):
     a.add_argument("motivo")
     o = sub.add_parser("fora", help="anota uma ideia que ficou fora do escopo")
     o.add_argument("ideia")
-    for nome in ("mostrar", "retomar", "limpar"):
+    for nome in ("mostrar", "retomar", "limpar", "status"):
         sub.add_parser(nome)
     args = ap.parse_args(argv)
 
     projeto = raiz(os.getcwd())
     estado = ler(projeto)
+    if args.comando == "status":
+        if estado and pendentes(estado):
+            feitos = sum(it["estado"] != "pendente" for it in estado["itens"])
+            print(f"foco ativo {feitos}/{len(estado['itens'])}")
+        return 0
     if args.comando == "definir":
         estado = {
             "sessao": sessao_atual(projeto),

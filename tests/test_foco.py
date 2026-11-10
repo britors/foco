@@ -45,6 +45,15 @@ class Foco(unittest.TestCase):
             r = self.hook(nome, tool_input={"file_path": str(self.proj / "x.py")})
             self.assertEqual((r.returncode, r.stdout, r.stderr), (0, "", ""), nome)
 
+    def test_status(self):
+        self.assertEqual(self.rodar("status").stdout, "")
+        self.definir("corrigir login", "atualizar README")
+        self.assertEqual(self.rodar("status").stdout, "foco ativo 0/2\n")
+        self.rodar("feito", "1")
+        self.assertEqual(self.rodar("status").stdout, "foco ativo 1/2\n")
+        self.rodar("adiar", "2", "depois")
+        self.assertEqual(self.rodar("status").stdout, "")
+
     def test_fluxo_completo(self):
         self.definir("corrigir login", "atualizar README")
         r = self.hook("hook-lembrete")

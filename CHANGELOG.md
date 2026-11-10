@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.0 — 10/11/2026
+
+- Status line: `hooks/status.ts` mostra `foco ativo N/M` enquanto a demanda tiver itens pendentes, e some quando tudo é concluído ou adiado.
+- `scripts/foco.py status`: a linha da status line, vazia sem pendentes.
+
 ## 1.0.0 — 10/11/2026
 
 - Skill `foco`: registra a demanda como lista de itens fiel ao pedido, com escopo de arquivos opcional, e anota ideias fora do escopo para o final.
