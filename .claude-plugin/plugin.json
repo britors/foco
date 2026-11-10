@@ -1,0 +1,13 @@
+{
+  "name": "foco",
+  "displayName": "Foco",
+  "version": "1.0.0",
+  "description": "Mantém o Claude no que foi pedido: registra a demanda como lista, avisa quando o trabalho sai do escopo, anota ideias para depois e não deixa encerrar com item pendente.",
+  "author": {
+    "name": "Rodrigo Brito"
+  },
+  "homepage": "https://github.com/britors/foco",
+  "repository": "https://github.com/britors/foco",
+  "license": "GPL-3.0-only",
+  "keywords": ["foco", "escopo", "produtividade", "hooks"]
+}

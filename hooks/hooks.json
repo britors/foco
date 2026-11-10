@@ -1,0 +1,27 @@
+{
+  "description": "Lembra os itens pendentes a cada pedido, avisa edições fora do escopo e não deixa encerrar com item pendente. Só agem depois que a demanda é registrada.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {"type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/skills/foco/scripts/foco.py\" hook-lembrete", "timeout": 5}
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {"type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/skills/foco/scripts/foco.py\" hook-escopo", "timeout": 5}
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {"type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/skills/foco/scripts/foco.py\" hook-parar", "timeout": 5}
+        ]
+      }
+    ]
+  }
+}
