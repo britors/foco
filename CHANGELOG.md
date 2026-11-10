@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1 — 10/11/2026
+
+- A demanda fica presa à pasta em que a sessão começou, mesmo que ela tenha feito `cd` para outro repositório. Antes, os hooks e os comandos rodados após o `cd` procuravam a demanda no repositório de destino e não a achavam.
+
 ## 1.1.0 — 10/11/2026
 
 - Status line: `hooks/status.ts` mostra `foco ativo N/M` enquanto a demanda tiver itens pendentes, e some quando tudo é concluído ou adiado.

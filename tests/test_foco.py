@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -105,6 +106,24 @@ class Foco(unittest.TestCase):
         self.definir("item")
         r = self.rodar("mostrar", cwd=self.proj / "src")
         self.assertIn("1. item", r.stdout)
+
+    def test_cd_para_subrepo_nao_muda_o_projeto(self):
+        # Sessão aberta numa pasta sem git que fez `cd` para um repositório dentro dela.
+        ws = Path(self.tmp.name) / "ws"
+        sub = ws / "sub"
+        sub.mkdir(parents=True)
+        subprocess.run(["git", "init", "-q", str(sub)], check=True)
+        transcricao = self.home / ".claude" / "projects" / re.sub(r"[^A-Za-z0-9]", "-", str(ws)) / "s1.jsonl"
+        transcricao.parent.mkdir(parents=True)
+        transcricao.write_text(json.dumps({"type": "user", "cwd": str(ws)}) + "\n")
+        dados = json.dumps({"session_id": "s1", "cwd": str(sub), "transcript_path": str(transcricao)})
+        self.rodar("hook-lembrete", entrada=dados, cwd=sub)
+        self.assertEqual(self.rodar("definir", "item", "--escopo", "sub/**", cwd=sub).returncode, 0)
+        self.assertIn("1) item", self.rodar("hook-lembrete", entrada=dados, cwd=sub).stdout)
+        self.assertIn("1. item", self.rodar("mostrar", cwd=ws).stdout)
+        self.assertEqual(self.rodar("feito", "1", cwd=sub).returncode, 0)
+        self.assertNotIn("Nenhuma demanda", self.rodar("mostrar", cwd=sub).stdout)
+        self.assertFalse((self.home / ".claude" / "foco" / f"{re.sub(r'[^A-Za-z0-9]', '-', str(sub))}.json").exists())
 
     def test_item_inexistente(self):
         self.definir("item")

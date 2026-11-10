@@ -30,6 +30,7 @@ import time
 from pathlib import Path
 
 PASTA = Path.home() / ".claude" / "foco"
+PROJETOS = Path.home() / ".claude" / "projects"
 SCRIPT = Path(__file__).resolve()
 
 
@@ -40,6 +41,37 @@ def raiz(cwd):
 
 def chave(projeto):
     return re.sub(r"[^A-Za-z0-9]", "-", str(projeto))
+
+
+def cwd_inicial(transcricao, padrao):
+    """Pasta em que a sessão começou: o primeiro cwd do transcript. O cwd dos hooks segue os `cd` da sessão."""
+    try:
+        with open(transcricao, encoding="utf-8", errors="replace") as f:
+            for linha in f:
+                try:
+                    cwd = json.loads(linha).get("cwd")
+                except (ValueError, AttributeError):
+                    continue
+                if cwd:
+                    return cwd
+    except (OSError, TypeError):
+        pass
+    return padrao
+
+
+def cwd_da_sessao(cwd):
+    """Pasta em que a sessão ativa começou, para os comandos rodados de uma subpasta após `cd`.
+
+    Procura em ~/.claude/projects a pasta atual e as de cima; vence a que tem o transcript mais recente.
+    """
+    cwd = Path(cwd).resolve()
+    melhor = None
+    for pasta in (cwd, *cwd.parents):
+        for t in (PROJETOS / chave(pasta)).glob("*.jsonl"):
+            mt = t.stat().st_mtime
+            if melhor is None or mt > melhor[0]:
+                melhor = (mt, pasta)
+    return melhor[1] if melhor else cwd
 
 
 def ler(projeto):
@@ -102,7 +134,7 @@ def cmd(argv):
         sub.add_parser(nome)
     args = ap.parse_args(argv)
 
-    projeto = raiz(os.getcwd())
+    projeto = raiz(cwd_da_sessao(os.getcwd()))
     estado = ler(projeto)
     if args.comando == "status":
         if estado and pendentes(estado):
@@ -151,7 +183,7 @@ def hook(nome):
         dados = json.load(sys.stdin)
     except ValueError:
         return 0
-    projeto = raiz(dados.get("cwd") or os.getcwd())
+    projeto = raiz(cwd_inicial(dados.get("transcript_path"), dados.get("cwd") or os.getcwd()))
     sid = dados.get("session_id")
     estado = ler(projeto)
 
