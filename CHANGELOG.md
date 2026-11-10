@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.2 — 10/11/2026
+
+- O aviso de edição fora do escopo só vale enquanto a demanda tiver itens pendentes. Antes, o escopo de uma demanda já concluída continuava barrando as edições do pedido seguinte.
+
 ## 1.1.1 — 10/11/2026
 
 - A demanda fica presa à pasta em que a sessão começou, mesmo que ela tenha feito `cd` para outro repositório. Antes, os hooks e os comandos rodados após o `cd` procuravam a demanda no repositório de destino e não a achavam.

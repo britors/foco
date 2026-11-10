@@ -207,7 +207,8 @@ def hook(nome):
 
     if nome == "hook-escopo":
         arquivo = (dados.get("tool_input") or {}).get("file_path") or (dados.get("tool_input") or {}).get("notebook_path")
-        if not arquivo or not estado.get("escopo"):
+        # Demanda concluída ou adiada não restringe mais nada: o próximo pedido pode não ter sido registrado.
+        if not arquivo or not estado.get("escopo") or not pendentes(estado):
             return 0
         try:
             relativo = str(Path(arquivo).resolve().relative_to(projeto))

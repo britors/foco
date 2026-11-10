@@ -89,6 +89,12 @@ class Foco(unittest.TestCase):
         self.assertEqual(fora.returncode, 2)
         self.assertIn("docs/x.md está fora do escopo", fora.stderr)
 
+    def test_escopo_some_com_a_demanda_concluida(self):
+        self.definir("mexer na api", escopo=["src/*"])
+        self.rodar("feito", "1")
+        r = self.hook("hook-escopo", tool_input={"file_path": str(self.proj / "docs" / "x.md")})
+        self.assertEqual((r.returncode, r.stderr), (0, ""))
+
     def test_sem_escopo_nao_avisa(self):
         self.definir("item")
         r = self.hook("hook-escopo", tool_input={"file_path": str(self.proj / "qualquer.py")})
