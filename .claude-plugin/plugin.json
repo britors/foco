@@ -1,7 +1,7 @@
 {
   "name": "foco",
   "displayName": "Foco",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "Mantém o Claude no que foi pedido: registra a demanda como lista, avisa quando o trabalho sai do escopo, anota ideias para depois e não deixa encerrar com item pendente.",
   "author": {
     "name": "Rodrigo Brito"
