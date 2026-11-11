@@ -131,6 +131,42 @@ class Foco(unittest.TestCase):
         self.assertNotIn("Nenhuma demanda", self.rodar("mostrar", cwd=sub).stdout)
         self.assertFalse((self.home / ".claude" / "foco" / f"{re.sub(r'[^A-Za-z0-9]', '-', str(sub))}.json").exists())
 
+    def test_modo_liga_e_desliga_pelo_pedido_do_usuario(self):
+        self.hook("hook-inicio")
+        self.assertNotIn("Modo foco ligado", self.hook("hook-lembrete").stdout)
+        self.assertIn("Modo foco ligado", self.hook("hook-lembrete", prompt="/foco on").stdout)
+        self.assertIn("Modo foco ligado", self.hook("hook-lembrete", prompt="corrija o login").stdout)
+        self.assertEqual(self.rodar("status").stdout, "foco ligado\n")
+        self.assertIn("ligado", self.rodar("modo").stdout)
+        r = self.hook("hook-lembrete", prompt="/foco:foco off")
+        self.assertIn("desligou", r.stdout)
+        self.assertNotIn("Modo foco ligado", self.hook("hook-lembrete", prompt="outra coisa").stdout)
+        self.assertEqual(self.rodar("status").stdout, "")
+
+    def test_cli_nao_desliga_o_modo(self):
+        self.hook("hook-lembrete", prompt="/foco on")
+        self.assertNotEqual(self.rodar("desligar").returncode, 0)
+        # Texto que só menciona o comando não troca o modo.
+        self.hook("hook-lembrete", prompt="explique o /foco off")
+        self.assertIn("ligado", self.rodar("modo").stdout)
+        for entrada in ({"command": "rm -rf ~/.claude/foco"},
+                        {"file_path": str(self.home / ".claude" / "foco" / "sessoes" / "s1")}):
+            r = self.hook("hook-guarda", tool_input=entrada)
+            self.assertEqual(json.loads(r.stdout)["hookSpecificOutput"]["permissionDecision"], "deny")
+        self.assertEqual(self.hook("hook-guarda", tool_input={"command": "ls"}).stdout, "")
+        self.hook("hook-lembrete", prompt="/foco off")
+        self.assertEqual(self.hook("hook-guarda", tool_input={"command": "rm -rf ~/.claude/foco"}).stdout, "")
+
+    def test_config_define_o_modo_das_sessoes_novas(self):
+        self.assertIn("desligado", self.rodar("config").stdout)
+        self.assertEqual(self.hook("hook-inicio", sessao="a").stdout, "")
+        self.assertIn("ligado", self.rodar("config", "on").stdout)
+        self.assertIn("Modo foco ligado", self.hook("hook-inicio", sessao="b").stdout)
+        # A sessão que já existia mantém o modo dela.
+        self.assertEqual(self.hook("hook-inicio", sessao="a").stdout, "")
+        self.hook("hook-lembrete", sessao="b", prompt="/foco off")
+        self.assertEqual(self.hook("hook-inicio", sessao="b").stdout, "")
+
     def test_item_inexistente(self):
         self.definir("item")
         r = self.rodar("feito", "5")

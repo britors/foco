@@ -1,6 +1,7 @@
 import type { EngineInterface, Register } from 'claude-code'
 
-// Mostra "foco ativo N/M" na status line enquanto a demanda tiver itens pendentes.
+// Mostra "foco ativo N/M" na status line enquanto a demanda tiver itens pendentes,
+// ou "foco ligado" quando o modo foco da sessão está ligado sem demanda pendente.
 async function atualizar($: EngineInterface) {
   try {
     const { stdout } = await $.process.run(

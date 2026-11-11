@@ -9,10 +9,17 @@ Comandos para o Claude, rodados na pasta do projeto:
     foco.py mostrar
     foco.py retomar        # assume a demanda pendente de outra sessão
     foco.py limpar
-    foco.py status         # uma linha para a status line, vazia sem pendentes
+    foco.py status         # uma linha para a status line, vazia sem pendentes nem modo foco
+    foco.py modo           # mostra se o modo foco está ligado nesta sessão
+    foco.py ligar          # liga o modo foco nesta sessão
+    foco.py config [on|off]  # novas sessões começam com o modo foco ligado ou não
+
+O modo foco só é desligado pelo usuário, digitando `/foco off`: não há comando para isso.
 
 Hooks do plugin (lêem o JSON do Claude Code na entrada padrão):
-    foco.py hook-lembrete  # UserPromptSubmit: lembra os itens pendentes
+    foco.py hook-inicio    # SessionStart: aplica o modo padrão às sessões novas
+    foco.py hook-lembrete  # UserPromptSubmit: liga ou desliga o modo e lembra os itens pendentes
+    foco.py hook-guarda    # PreToolUse: com o modo ligado, não deixa mexer no estado do foco
     foco.py hook-escopo    # PostToolUse: avisa edição fora do escopo
     foco.py hook-parar     # Stop: não deixa encerrar com item pendente
 
@@ -31,7 +38,10 @@ from pathlib import Path
 
 PASTA = Path.home() / ".claude" / "foco"
 PROJETOS = Path.home() / ".claude" / "projects"
+SESSOES = PASTA / "sessoes"
+CONFIG = PASTA / "config.json"
 SCRIPT = Path(__file__).resolve()
+CHAVE_MODO = re.compile(r"\s*/foco(?::foco)?\s+(on|off)\s*$", re.IGNORECASE)
 
 
 def raiz(cwd):
@@ -96,6 +106,32 @@ def sessao_atual(projeto):
         return None
 
 
+def modo(sid):
+    try:
+        return (SESSOES / sid).read_text().strip() or None
+    except (OSError, TypeError):
+        return None
+
+
+def gravar_modo(sid, valor):
+    SESSOES.mkdir(parents=True, exist_ok=True)
+    (SESSOES / sid).write_text(valor)
+
+
+def config():
+    try:
+        return json.loads(CONFIG.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def aviso_modo():
+    return (f"[foco] Modo foco ligado nesta sessão; só o usuário desliga, com `/foco off`. "
+            f"Siga a skill foco em todo pedido: se o pedido é novo, registre-o antes de agir com "
+            f"`python3 {SCRIPT} definir \"item\" ... --titulo \"...\"`, mesmo com um item só; "
+            f"se continua a demanda atual, siga nela.")
+
+
 def pendentes(estado):
     return [(i, it) for i, it in enumerate(estado["itens"], 1) if it["estado"] == "pendente"]
 
@@ -130,20 +166,43 @@ def cmd(argv):
     a.add_argument("motivo")
     o = sub.add_parser("fora", help="anota uma ideia que ficou fora do escopo")
     o.add_argument("ideia")
-    for nome in ("mostrar", "retomar", "limpar", "status"):
+    for nome in ("mostrar", "retomar", "limpar", "status", "modo", "ligar"):
         sub.add_parser(nome)
+    c = sub.add_parser("config", help="modo foco das sessões novas")
+    c.add_argument("iniciar", nargs="?", choices=["on", "off"])
     args = ap.parse_args(argv)
+
+    if args.comando == "config":
+        if args.iniciar:
+            PASTA.mkdir(parents=True, exist_ok=True)
+            CONFIG.write_text(json.dumps({**config(), "iniciar": args.iniciar}), encoding="utf-8")
+        ligado = config().get("iniciar") == "on"
+        print(f"Novas sessões começam com o modo foco {'ligado' if ligado else 'desligado'}.")
+        return 0
 
     projeto = raiz(cwd_da_sessao(os.getcwd()))
     estado = ler(projeto)
+    sid = sessao_atual(projeto)
     if args.comando == "status":
         if estado and pendentes(estado):
             feitos = sum(it["estado"] != "pendente" for it in estado["itens"])
             print(f"foco ativo {feitos}/{len(estado['itens'])}")
+        elif modo(sid) == "on":
+            print("foco ligado")
+        return 0
+    if args.comando in ("modo", "ligar"):
+        if not sid:
+            sys.exit("Sessão não identificada: o hook do foco ainda não rodou neste projeto.")
+        if args.comando == "ligar":
+            gravar_modo(sid, "on")
+        if modo(sid) == "on":
+            print("Modo foco ligado nesta sessão. Só o usuário desliga, com `/foco off`.")
+        else:
+            print("Modo foco desligado nesta sessão. O usuário liga com `/foco on`.")
         return 0
     if args.comando == "definir":
         estado = {
-            "sessao": sessao_atual(projeto),
+            "sessao": sid,
             "titulo": args.titulo,
             "itens": [{"texto": t, "estado": "pendente"} for t in args.itens],
             "escopo": args.escopo,
@@ -163,7 +222,7 @@ def cmd(argv):
     elif args.comando == "fora":
         estado["fora"].append(args.ideia)
     elif args.comando == "retomar":
-        estado["sessao"] = sessao_atual(projeto)
+        estado["sessao"] = sid
     elif args.comando == "limpar":
         (PASTA / f"{chave(projeto)}.json").unlink(missing_ok=True)
         print("Demanda apagada.")
@@ -187,10 +246,39 @@ def hook(nome):
     sid = dados.get("session_id")
     estado = ler(projeto)
 
+    if nome in ("hook-inicio", "hook-lembrete") and sid:
+        PASTA.mkdir(parents=True, exist_ok=True)
+        (PASTA / f"{chave(projeto)}.sessao").write_text(sid)
+
+    if nome == "hook-inicio":
+        if sid and modo(sid) is None:
+            gravar_modo(sid, config().get("iniciar", "off"))
+        if modo(sid) == "on":
+            print(aviso_modo())
+        return 0
+
+    if nome == "hook-guarda":
+        # Com o modo ligado, o Claude não pode desligá-lo mexendo direto nos arquivos de estado.
+        if modo(sid) != "on" or ".claude/foco" not in json.dumps(dados.get("tool_input") or {}):
+            return 0
+        print(json.dumps({"hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": (
+                f"[foco] O modo foco está ligado e só o usuário o desliga, com `/foco off`. Não mexa em "
+                f"~/.claude/foco; use os comandos de `python3 {SCRIPT}`."
+            ),
+        }}, ensure_ascii=False))
+        return 0
+
     if nome == "hook-lembrete":
-        if sid:
-            PASTA.mkdir(parents=True, exist_ok=True)
-            (PASTA / f"{chave(projeto)}.sessao").write_text(sid)
+        troca = CHAVE_MODO.match(dados.get("prompt") or "")
+        if sid and troca:
+            gravar_modo(sid, troca.group(1).lower())
+            if modo(sid) == "off":
+                print("[foco] O usuário desligou o modo foco nesta sessão.")
+        if modo(sid) == "on":
+            print(aviso_modo())
         if not estado or not pendentes(estado):
             return 0
         if estado.get("sessao") != sid:

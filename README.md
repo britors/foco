@@ -19,7 +19,7 @@ Plugin do [Claude Code](https://claude.com/claude-code) que mantém o Claude **n
 - **Mostra `foco ativo N/M` na status line** enquanto a demanda tiver itens pendentes (N concluídos ou adiados de M).
 - **Não deixa encerrar com item pendente:** o Claude conclui o item, adia com motivo ou pergunta a você. Ele bloqueia uma vez só, para não prender a sessão.
 
-Os hooks só agem depois que uma demanda é registrada no projeto. Sem demanda, não fazem nada e não gastam tokens.
+Os hooks só agem depois que uma demanda é registrada no projeto ou que o modo foco é ligado. Sem demanda, não fazem nada e não gastam tokens.
 
 ### Instalação
 
@@ -51,7 +51,13 @@ Fora do escopo, para depois:
 - o módulo de pagamento repete a mesma validação
 ```
 
-Comandos que o Claude usa: `definir`, `feito N`, `adiar N "motivo"`, `fora "ideia"`, `mostrar`, `retomar` (assume a demanda deixada por outra sessão), `limpar` e `status` (a linha da status line). O estado fica em `~/.claude/foco/`, um arquivo por projeto.
+#### Modo foco
+
+`/foco on` liga o modo foco na sessão: a partir daí, **todo** pedido é registrado como demanda antes de o Claude agir, e a status line mostra `foco ligado`. Só você desliga, com `/foco off`; o Claude não tem como desligar o modo, nem mexendo nos arquivos de estado.
+
+`/foco:setup` define se as novas sessões já começam com o modo foco ligado ou desligado. A configuração fica em `~/.claude/foco/config.json`.
+
+Comandos que o Claude usa: `definir`, `feito N`, `adiar N "motivo"`, `fora "ideia"`, `mostrar`, `retomar` (assume a demanda deixada por outra sessão), `limpar`, `status` (a linha da status line), `modo`, `ligar` e `config`. O estado fica em `~/.claude/foco/`, um arquivo por projeto.
 
 ### Estrutura
 
@@ -60,7 +66,8 @@ Comandos que o Claude usa: `definir`, `feito N`, `adiar N "motivo"`, `fora "idei
 .claude-plugin/marketplace.json  marketplace de um plugin só
 skills/foco/SKILL.md             como registrar, trabalhar e encerrar
 skills/foco/scripts/foco.py      comandos e hooks
-hooks/hooks.json                 UserPromptSubmit, PostToolUse e Stop
+skills/setup/SKILL.md            /foco:setup, o modo das sessões novas
+hooks/hooks.json                 SessionStart, UserPromptSubmit, PreToolUse, PostToolUse e Stop
 hooks/status.ts                  "foco ativo" na status line
 tests/test_foco.py               testes
 ```
@@ -77,6 +84,7 @@ Para rodar os testes: `python3 -m unittest discover -s tests`.
 - Logs out-of-scope ideas instead of acting on them, and lists them at the end.
 - Shows `foco ativo N/M` in the status line while items are pending.
 - Blocks stopping while items are pending, but only once.
+- Focus mode: `/foco on` makes every request in the session go through the checklist; only you can turn it off, with `/foco off`. `/foco:setup` sets whether new sessions start with it on.
 
 The hooks do nothing until a request is recorded.
 

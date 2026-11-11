@@ -9,6 +9,14 @@ Objetivo: fazer **tudo** o que foi pedido e **só** o que foi pedido. Ideias boa
 
 O script fica em `scripts/foco.py`, ao lado deste SKILL.md. Use o caminho absoluto e rode-o na pasta do projeto.
 
+## Modo foco: `/foco on` e `/foco off`
+
+Se a skill foi chamada com `on` ou `off`, o usuário está ligando ou desligando o **modo foco** desta sessão. O hook já aplicou a troca: rode `foco.py modo` e diga ao usuário em que estado ficou. Não registre demanda nesse pedido. Se `on` não tiver pegado, rode `foco.py ligar`.
+
+Com o modo ligado, **todo** pedido da sessão segue esta skill: registre a demanda antes de agir, mesmo com um item só.
+
+O modo foco **só o usuário desliga**, digitando `/foco off`. Você não desliga: não há comando para isso, não mexa em `~/.claude/foco` e não peça para desligar só porque o trabalho ficou difícil.
+
 ## 1. Registrar a demanda
 
 Antes de agir, transforme o pedido numa lista de itens e registre:

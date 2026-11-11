@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0 — 11/11/2026
+
+- Modo foco por sessão: `/foco on` liga e `/foco off` desliga. Ligado, todo pedido da sessão é registrado como demanda, e a status line mostra `foco ligado`.
+- Só o usuário desliga o modo: a troca vem do texto digitado, o script não tem comando para desligar, e o hook `PreToolUse` impede o Claude de mexer em `~/.claude/foco` enquanto o modo está ligado.
+- `/foco:setup`: define se as novas sessões começam com o modo foco ligado ou desligado (`foco.py config on|off`), aplicado pelo hook `SessionStart`.
+
 ## 1.1.2 — 10/11/2026
 
 - O aviso de edição fora do escopo só vale enquanto a demanda tiver itens pendentes. Antes, o escopo de uma demanda já concluída continuava barrando as edições do pedido seguinte.
